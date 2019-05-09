@@ -39,6 +39,8 @@ function obj = fit(obj, angles, nComponents, varargin)
 p = inputParser();
 defaultMaxIter = 100;
 defaultErrorThreshold = 1E-4;
+defaultWeightsMode = 'auto';
+
 
 p.addRequired('Angles', ...
   @(x) validateattributes(x, ...
@@ -65,6 +67,13 @@ p.addParameter('ErrorThreshold', ...
   {'numeric'}, ...
   {'real', 'scalar', 'nonnegative'}) ...
   );
+    
+p.addParameter('WeightsMode', ...
+  defaultWeightsMode, ...
+  @(x) validateattributes(x, ...
+  {'char'}, ...
+  {'nonempty'}) ...
+  );
 
 p.parse(angles, nComponents, varargin{:});
 
@@ -87,7 +96,7 @@ gamma = gamma + eps;
 gamma = bsxfun(@rdivide, gamma, sum(gamma, 2));
 
 % Get initial parameter estimates
-[muHat, kappaHat, cPropHat] = obj.estimateParameters( p.Results.Angles, gamma );
+[muHat, kappaHat, cPropHat] = obj.estimateParameters( p.Results.Angles, gamma ,p.Results.WeightsMode );
 
 % Initialize log-likelihood and status parameters
 logLik = -realmax;
@@ -99,7 +108,7 @@ for k = 1 : p.Results.MaxIter
     obj.computeGamma(p.Results.Angles, cPropHat, muHat, kappaHat);
   
   % M-Step: Re-estimate the distribution parameters
-  [muHat, kappaHat, cPropHat] = obj.estimateParameters(angles, gamma);
+  [muHat, kappaHat, cPropHat] = obj.estimateParameters(angles, gamma, p.Results.WeightsMode);
   
   % Evaluate the log-likelihood
   logLikNew = ...

@@ -1,4 +1,4 @@
-function [mu, kappa, cProp] = estimateParameters(obj, angles, gamma)
+function [mu, kappa, cProp] = estimateParameters(obj, angles, gamma, weights)
 % ESTIMATEPARAMETERS This function computes the maximum
 %   likelihood estimates of the distribution parameters mu,
 %   kappa and the mixing proportions for a given set
@@ -47,15 +47,28 @@ p.addRequired('Gamma', ...
   {'numeric'}, ...
   {'real', '2d', 'nrows', length(angles)}) ...
   );
+    
+p.addRequired('WeightsMode', ...
+  @(x) validateattributes(x, ...
+  {'char'}, ...
+  {'nonempty'}) ...
+  );
 
-p.parse(angles, gamma);
+p.parse(angles, gamma, weights);
 
-% Compute mixing proportions.
-cProp = sum(gamma) ./ size(gamma, 1);
+switch p.Results.WeightsMode
+    case 'auto'
+        % Compute mixing proportions.
+        cProp = sum(gamma) ./ size(gamma, 1);
 
-% Ensure that each mixing proportion coefficient is greater than zero.
-cProp = cProp + eps;
-cProp = cProp ./ sum(cProp);
+        % Ensure that each mixing proportion coefficient is greater than zero.
+        cProp = cProp + eps;
+        cProp = cProp ./ sum(cProp);
+    case 'fixed'
+        cProp = ones(1,size(gamma,2))/size(gamma,2);    % equal proportion           
+    otherwise
+        error('WeightsMode can be either ''auto'' or ''fixed''.')
+end
 
 % Compute estimation parameters.
 x = (gamma' * cos(angles)) ./ sum(gamma)';
